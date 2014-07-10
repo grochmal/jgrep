@@ -1,52 +1,15 @@
 #!/usr/bin/env python
 
-import sys,getopt,re,json
-#TODO use fileinput to provide line numbers and stdin processing,
-# e.g. cat implementation
-#import fileinput
-#inp = fileinput.input(['rr', 'idownloader.py'])
-#while True:
-#    try:
-#        line = inp.next()
-#        print line,
-#    except IOError as e:
-#        print str(e)
-#    except StopIteration:
-#        break
+import sys,getopt,json
+import unixjs.pipe as up
 
-def match(js, key, pattern, invert):
-    match = False
-    for k in filter(key.search, js.keys()):
-        if pattern.search(str(js[k])): match = True
-    if invert: match = not match
-    return match
-
-def all_lines(key, pattern, files, invert):
-    for f in files:
-        try:
-            with open(f) as file:
-                for lno, line in enumerate(file, start=1):
-                    line = line.strip()
-                    if '' == line: continue
-                    try:
-                        js = json.loads(line)
-                        if not type(js) is dict:
-                            print >> sys.stderr, 'Non dictionary at line', lno
-                            continue
-                        if match(js, key, pattern, invert): print line
-                    except ValueError as e:
-                        print >> sys.stderr, str(e), 'at line', lno
-        except IOError as e:
-            print >> sys.stderr, str(e)
-
-def build_re(exp):
-    try:
-        regex = re.compile(exp)
-    except sre_constants.error as e:
-        print str(e)
-        print 'In regular expression [' + exp + ']'
-        sys.exit(1)
-    return regex
+def match(js, params):
+    mtch = False
+    for k in filter(params['key'].search, js.keys()):
+        if params['pattern'].search(str(js[k])): mtch = True
+    if params.get('v'): mtch = not mtch
+    if mtch: return js
+    return None
 
 def usage(exit):
     print
@@ -61,15 +24,6 @@ def usage(exit):
     print
     sys.exit(exit)
 
-# TODO
-# -V, --version
-# -n, --line-number
-# -s, -q, --quiet, --silent, --no-messages
-# -i, --ignore-case
-# -I, --ignore-value-case
-# -H, --with-filename
-# -R, -r, --recursive
-
 if '__main__' == __name__:
     try:
         opts,args = getopt.getopt(sys.argv[1:],"vh",["invert","help"])
@@ -78,14 +32,23 @@ if '__main__' == __name__:
         print usage(1)
     if 2 > len(args):
         print  usage(0)
-    key     = args.pop(0)
-    pattern = args.pop(0)
-    invert  = False
-    help    = False
+    key     = up.build_re(args.pop(0))
+    pattern = up.build_re(args.pop(0))
+    if not key or not pattern: sys.exit(1)
+    params  = { 'key':key , 'pattern':pattern }
     for o,a in opts:
-        if   o in ('-v','--invert') : invert = True
-        elif o in ('-h','--help')   : help   = True
+        if   o in ('-h','--help')                  : params['h'] = True
+        elif o in ('-V','--version')               : params['V'] = True #TODO
+        elif o in ('-v','--invert')                : params['v'] = True
+        elif o in ('-n','--line-number')           : params['n'] = True #TODO
+        elif o in ('-i','--ignore-case')           : params['i'] = True #TODO
+        elif o in ('-I','--ignore-value-case')     : params['I'] = True #TODO
+        elif o in ('-H','--with-filename')         : params['H'] = True #TODO
+        elif o in ('-q','--quiet','--no-messages') : params['s'] = True #TODO
+        elif o in ('-s','--silent')                : params['s'] = True #TODO
+        elif o in ('-R','-r','--recursive')        : params['R'] = True #TODO
         else : assert False, 'bad command line option'
-    if help: usage(0)
-    all_lines(build_re(key), build_re(pattern), args, invert)
+    if params.get('h'): usage(0)
+    for js in up.all_lines(args, params, match):
+        print json.dumps(js)
 
