@@ -17,19 +17,26 @@ def all_lines(args, params, linef, silent=False, pipe=True):
             try:
                 js = json.loads(line)
                 if not type(js) is dict:
-                    eprint(silent, 'Non dictionary at line', lno)
+                    eprint( 'Non dictionary at file:', fileinput.filename()
+                          , 'line:', fileinput.filelineno(), silent=silent
+                          )
                     continue
                 ret = linef(js, params)
                 if ret: yield ret
-            except ValueError as e: eprint(silent, str(e), 'at line', lno)
-        except IOError as e: eprint(silent, sys.stderr, str(e))
+            except ValueError as e: eprint( str(e)
+                                          , 'File:', fileinput.filename()
+                                          , 'line:', fileinput.filelineno()
+                                          , silent=silent
+                                          )
+        except IOError as e: eprint(str(e), silent=silent)
         except StopIteration: break
 
-def build_re(exp, silent=False):
+def build_re(exp, flags=0, silent=False):
+    flags = flags | re.UNICODE
     regex = None
     try:
-        regex = re.compile(exp)
+        regex = re.compile(exp, flags)
     except re.error as e:
-        eprint(str(e), 'in regular expression [' + exp + ']')
+        eprint(str(e), 'in regular expression [' + exp + ']', silent=silent)
     return regex
 

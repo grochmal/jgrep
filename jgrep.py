@@ -1,32 +1,48 @@
 #!/usr/bin/env python
 
-import sys,getopt,json
+__version__ = '0.7'
+__author__  = 'Michal Grochmal'
+__licence__ = 'GNU GPL v3 or later'
+__prog__    = 'jgrep'
+__doc__     = '''
+Usage: jgrep [-hVqvniIHR] <key re> <value re> [<file> ...]
+
+  -h, --help
+        print this help.
+
+  -V, --version
+        prints the version of the script.
+
+  -q, --quiet, --silent
+        do not print anything, even on error
+
+  -v, --invert-match
+        print lines that do not match re pattern pattern.
+'''
+
+import sys,getopt,json,re
 import unixjs.pipe as up
 
 def match(js, params):
     mtch = False
     for k in filter(params['key'].search, js.keys()):
-        if params['pattern'].search(str(js[k])): mtch = True
+        if params['pattern'].search(js[k]): mtch = True
     if params.get('v'): mtch = not mtch
     if mtch: return js
     return None
 
 def usage(exit):
-    print
-    print 'Usage:', sys.argv[0], '[-v][-h] <key re> <value re> [<file> ...]'
-    print
-    print '  -h, --help'
-    print '        print this help.'
-    print
-    #print '  -V, --version'
-    print '  -v, --invert-match'
-    print '        print lines that do not match re pattern pattern.'
-    print
+    print __doc__
     sys.exit(exit)
 
 if '__main__' == __name__:
     try:
-        opts,args = getopt.getopt(sys.argv[1:],"vh",["invert","help"])
+        opts,args = getopt.getopt( sys.argv[1:], 'hVqvniIHR'
+                                 , [ 'help'   , 'version' , 'quiet'
+                                   , 'silent' , 'invert'  , 'line-number'
+                                   , 'ignore-case'   , 'ignore-value-case'
+                                   , 'with-filename' , 'recursive'
+                                   ])
     except getopt.GetoptError as e:
         print str(e)
         print usage(1)
@@ -38,17 +54,19 @@ if '__main__' == __name__:
     params  = { 'key':key , 'pattern':pattern }
     for o,a in opts:
         if   o in ('-h','--help')                  : params['h'] = True
-        elif o in ('-V','--version')               : params['V'] = True #TODO
+        elif o in ('-V','--version')               : params['V'] = True
+        elif o in ('-q','--quiet','--silent')      : params['q'] = True
         elif o in ('-v','--invert')                : params['v'] = True
         elif o in ('-n','--line-number')           : params['n'] = True #TODO
         elif o in ('-i','--ignore-case')           : params['i'] = True #TODO
         elif o in ('-I','--ignore-value-case')     : params['I'] = True #TODO
         elif o in ('-H','--with-filename')         : params['H'] = True #TODO
-        elif o in ('-q','--quiet','--no-messages') : params['s'] = True #TODO
-        elif o in ('-s','--silent')                : params['s'] = True #TODO
         elif o in ('-R','-r','--recursive')        : params['R'] = True #TODO
         else : assert False, 'bad command line option'
+    if params.get('V'):
+       print __prog__, __version__
+       sys.exit(0)
     if params.get('h'): usage(0)
-    for js in up.all_lines(args, params, match):
+    for js in up.all_lines(args, params, match, silent=params.get('q')):
         print json.dumps(js)
 
