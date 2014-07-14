@@ -3,9 +3,9 @@
 __version__ = '0.1'
 __author__  = 'Michal Grochmal'
 __licence__ = 'GNU GPL v3 or later'
-__prog__    = 'jsed'
+__prog__    = 'jsub'
 __doc__     = '''
-Usage: jsed [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
+Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
 
   -h, --help
         print this help.
@@ -16,11 +16,21 @@ Usage: jsed [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
   -q, --quiet, --silent
         do not print anything, even on error
 
-  -f, --file
+  -f, --file=script_file
 
   -e, --expression
+        the expression to execute
+
+        /image_jpg/image_png/\.jpg/.png/
+
+        {url}{file}{.*/}{}
 
   -i, --in-place
+        change the file in place, the default is to print the modified file to
+        standard output.
+
+  -b, --backup=extension
+        if -i is in effet 
 
   -I, --inline
 '''
