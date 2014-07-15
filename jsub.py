@@ -8,31 +8,87 @@ __doc__     = '''
 Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
 
   -h, --help
-        print this help.
+        print this help
 
   -V, --version
-        prints the version of the script.
+        prints the version of the script
 
   -q, --quiet, --silent
         do not print anything, even on error
 
-  -f, --file=script_file
+  -e /pattern/replacement/, --expression=/pattern/replacement/
+  -e /pattern/replacement/flags
+  -e /pattern/pattern/replacement/
+  -e /pattern/pattern/replacement/flags
+  -e /pattern/replacement/pattern/replacement/
+  -e /pattern/replacement/pattern/replacement/flags
+  -e {pattern}{replacement}
+  -e {pattern}{replacement}flags
+  -e {pattern}{pattern}{replacement}
+  -e {pattern}{pattern}{replacement}flags
+  -e {pattern}{replacement}{pattern}{replacement}
+  -e {pattern}{replacement}{pattern}{replacement}flags
+        the substitution expression to execute, this expression will be run on
+        every line on every key that matches.  Several expressions can be
+        specified on a single invocation and will be executed in the order
+        they're present in the command line.  The pattern part of the
+        expression is a regular expression, whilst the replacement part is a
+        string that accepts '\\\\' groupings (e.g. \\\\1 for first grouping).
 
-  -e, --expression
-        the expression to execute
+        An expression is divided into fields, each field is delimited by a
+        delimiter character.  The first character of the expression becomes the
+        delimiter character, every occurrence of that character thereof will
+        mark the start of a new field.  The delimiter character must be
+        printable and cannot be a digit (0-9) or one of the characters: 'g',
+        'i', '.' or '#'.  The delimiter character cannot be used in the fields
+        of the expression.
 
-        /image_jpg/image_png/\.jpg/.png/
+        Also, the three grouping pairs characters '()', '[]' and '{}' can be
+        used to group the fields together.  Note that using '()' will not allow
+        the use of grouping in the pattern and using '[]' will not allow the
+        use of character definitions.
 
-        {url}{file}{.*/}{}
+        The following expressions are equivalent.
+
+        change the key 'image_id' to 'image':
+            -e /image_id/image/
+            -e ;image_id;image;
+            -e "image_id"image"
+            -e {image_id}{image}
+            -e (image_id)(image)
+
+        every image key content from .jpg to .png
+            -e /image_.*/\.jpg$/.png/g
+            -e =image_.*=\.jpg$=.png=g
+            -e [image_.*][\.jpg$][.png]g
+
+        first change every field containing `image` to start with this word,
+        then change every occurrence of .jpg to .png
+        (note: if two fields are named `first_image`, `second_image` the first
+        field will be overridden by the second as per ASCIIbetical order)
+            -e /.*image(.*)/image\\\\1/g -e /image.*/\.jpg/.png/g
+            -e {.*image(.*)}{image\\\\1}g -e {image.*}{\.jpg}{.png}g
+            -e /.*image(.*)/image\\\\1/g -e {image.*}{\.jpg}{.png}g
+
+        More on the purpose of each field in the -e expression can be found in
+        the `Expression` section, below.
+
+  -f script_file, --file=script_file
+        the script file contains one expression (as in the -e option) per line,
+        which are executed in order as they appear in the input.  Every
+        expression in the `script_file`
 
   -i, --in-place
         change the file in place, the default is to print the modified file to
-        standard output.
+        standard output.  If the input is composed of standard input only, of
+        several files or of a combination of standard input and files this flag
+        is ignored.
 
-  -b, --backup=extension
-        if -i is in effet 
-
-  -I, --inline
+  -b extension , --backup=extension
+        if -i is in effect copy the input file is copied and the extension
+        `extension` is appended to it.  Only then the original file is
+        modified.  If -i is in effect and -b is not present the changes made
+        are irreversible.
 '''
 
 import sys,getopt,json,re
