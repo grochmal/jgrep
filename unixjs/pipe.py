@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import sys,re,json,fileinput
+from unixjs.error import eprint
 
-def eprint(*args, **kwargs):
-    if not kwargs.get('silent'): print >> sys.stderr, ' '.join(map(str, args))
+#def eprint(*args, **kwargs):
+#    if not kwargs.get('silent'): print >> sys.stderr, ' '.join(map(str, args))
 
 def all_lines(args, params, linef, silent=False, pipe=True):
     input = fileinput.input(args)

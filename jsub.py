@@ -70,13 +70,18 @@ Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
             -e {.*image(.*)}{image\\\\1}g -e {image.*}{\.jpg}{.png}g
             -e /.*image(.*)/image\\\\1/g -e {image.*}{\.jpg}{.png}g
 
-        More on the purpose of each field in the -e expression can be found in
-        the `Expression` section, below.
+        More on the purpose of each field  and the `flags` suffix in the -e
+        expression can be found in the `Expression` section, below.
 
   -f script_file, --file=script_file
         the script file contains one expression (as in the -e option) per line,
         which are executed in order as they appear in the input.  Every
-        expression in the `script_file`
+        expression in the `script_file` is exactly the same as if it was passed
+        to the -e flag.
+
+        If both -f and -e are present (possibly several -e flags) the changes
+        to each line of the input will happen by first executing the script
+        passed by -f and then executing all -e flags in order.
 
   -i, --in-place
         change the file in place, the default is to print the modified file to
@@ -93,8 +98,9 @@ Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
 
 import sys,getopt,json,re
 import unixjs.pipe as up
+from unixjs.error import eprint
 
-def sed(js, params):
+def sed(js, params, info=None):
     cut  = {}
     left = {}
     for k in js.keys():
@@ -104,38 +110,112 @@ def sed(js, params):
     if params.get('c'): return left
     return cut
 
+def p_flags(flags):
+    cnt,flg = 1,0
+    if 'i' in flags:
+        flg   |= re.IGNORECASE
+        flags  = flags.replace('i','',1)
+    if 'g' in flags:
+        cnt   = 0
+        flags = flags.replace('g','',1)
+    elif flags.isdigit():
+        cnt   = int(flags)
+        flags = ''
+    if flags: return [None,None]
+    return [cnt,flg]
+
+def p_expr(expr, silent=False):
+    bad_delims = 'gi\\.\\#'
+    splits     = { '{':'\\}\\{?' , '(':'\\)\\(?' , '[':'\\]\\[?' }
+    kp,kr,vp,vr,kcn,kfl,kvl,vfl = None,None,None,None,None,None,None,None
+    try:
+        delim = splits.get(expr[0],re.escape(expr[0]))
+        if delim in bad_delims: return None
+        fields = re.split(delim,expr[1:])
+    except IndexError:
+        return None
+    l = len(fields)
+    if   3 >  l: return None
+    elif 5 <  l: return None
+    elif 3 == l: kp , kr ,           flags = fields
+    elif 4 == l: kp ,      vp , vr , flags = fields
+    elif 5 == l: kp , kr , vp , vr , flags = fields
+    if   not '.' in flags and not vr: flags = flags + '.'
+    elif not '.' in flags           : flags = '.' + flags
+    if not 1 == flags.count('.'): return None
+    kcn,kfl,vcn,vfl = reduce(list.__add__, map(p_flags, flags.split('.')))
+    if any(map(lambda x: x is None, (kcn,kfl,vcn,vfl))): return None
+    # /kp/kr/vp/vr/kcnkfl.vcnvfl => /kp/kr/vp/vr/kcn.vcn (kfl and vfl compiled)
+    kp = up.build_re(kp, flags=kfl, silent=silent)
+    if vr: vp = up.build_re(vp, flags=vfl, silent=silent)
+    if not kp or vr and not vp: return None
+    return { 'kp':kp   , 'kr':kr   , 'vp':vp   , 'vr':vr
+           , 'kcn':kcn , 'kfl':kfl , 'vcn':vcn , 'vfl':vfl }
+
+def compile(exprs, file=False, silent=False):
+    comment   = re.compile(r'\s+#.*$|^#.*')
+    empty     = re.compile(r'^\s*$')
+    good_ones = []
+    for num, expr in enumerate(exprs, 1):
+        lineerr = ''
+        if file:
+            expr = expr.strip()
+            expr = comment.sub('', expr)
+            if empty.match(expr): continue
+            lineerr = 'at line '+str(num)+': '
+        e = p_expr(expr, silent=silent)
+        if not e:
+            if file: err = ''
+            eprint(lineerr + 'invalid expression [' + expr +']', silent=silent)
+            return None
+        good_ones.append(e)
+    return good_ones
+
+def compile_script(file, silent=False):
+    try:
+        with open(file) as f:
+            return compile(f, file=True, silent=silent)
+    except IOError as e:
+        eprint(str(e), silent=silent)
+        return None
+
 def usage(exit):
     print __doc__
     sys.exit(exit)
 
 if '__main__' == __name__:
     try:
-        opts,args = getopt.getopt( sys.argv[1:],"hVqf:e:iI"
+        opts,args = getopt.getopt( sys.argv[1:],'hVqf:e:iI'
                                  , [ 'help'     , 'version' , 'quiet'
                                    , 'silent'   , 'file'    , 'expression'
-                                   , 'in-place' , 'inline'
+                                   , 'in-place' , 'backup'
                                    ])
     except getopt.GetoptError as e:
         print str(e)
         print usage(1)
-    params = {}
+    params = { 'e':[] }
     for o,a in opts:
-        if   o in ('-h','--help')             : params['h'] = True
-        elif o in ('-V','--version')          : params['V'] = True
-        elif o in ('-q','--quiet','--silent') : params['q'] = True
-        elif o in ('-f','--file')             : params['f'] = a
-        elif o in ('-e','--expression')       : params['e'] = True
-        elif o in ('-i','--in-place')         : params['i'] = True
-        elif o in ('-I','--inline')           : params['I'] = True
+        if   o in ('-h','--help')             : params['h']  = True
+        elif o in ('-V','--version')          : params['V']  = True
+        elif o in ('-q','--quiet','--silent') : params['q']  = True
+        elif o in ('-f','--file')             : params['f']  = a
+        elif o in ('-e','--expression')       : params['e'] += o
+        elif o in ('-i','--in-place')         : params['i']  = True # TODO
+        elif o in ('-b','--backup')           : params['b']  = a    # TODO
         else : assert False, 'bad command line option'
     if params.get('V'):
         print __prog__, __version__
         sys.exit(0)
-    if params.get('h') or not params.get('f'): usage(0)
-    flds = params['f'].split(',')
-    if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
-    params['f'] = map(lambda x: up.build_re(x, silent=params.get('q')), flds)
-    if any(map(lambda x: not x, params['f'])): sys.exit(1)
-    for js in up.all_lines(args, params, cut):
-        print json.dumps(js)
+    if params.get('h'): usage(0)
+    if 1 == len(args) and 0 == len(opts): params['f'] = args.pop()
+    script = []
+    if params.get('f'):
+        script = compile_script(params['f'], silent=params.get('q'))
+    script += compile(params['e'], silent=params.get('q'))
+    #flds = params['f'].split(',')
+    #if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
+    #params['f'] = map(lambda x: up.build_re(x, silent=params.get('q')), flds)
+    #if any(map(lambda x: not x, params['f'])): sys.exit(1)
+#    for js in up.all_lines(args, params, sed):
+#        print json.dumps(js)
 
