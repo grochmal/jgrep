@@ -21,7 +21,8 @@ Usage: jgrep [-hVqvniIHR] <key re> <value re> [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjs.pipe as up
+import unixjso.pipe as up
+import unixjso.core as uc
 
 def match(js, params):
     mtch = False
@@ -48,8 +49,8 @@ if '__main__' == __name__:
         print usage(1)
     if 2 > len(args):
         print  usage(0)
-    key     = up.build_re(args.pop(0))
-    pattern = up.build_re(args.pop(0))
+    key     = uc.build_re(args.pop(0))
+    pattern = uc.build_re(args.pop(0))
     if not key or not pattern: sys.exit(1)
     params  = { 'key':key , 'pattern':pattern }
     for o,a in opts:

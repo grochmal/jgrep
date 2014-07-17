@@ -97,8 +97,8 @@ Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjs.pipe as up
-from unixjs.error import eprint
+import unixjso.pipe as up
+from unixjso.core import eprint,build_re
 
 def sed(js, params, info=None):
     cut  = {}
@@ -146,8 +146,8 @@ def p_expr(expr, silent=False):
     kcn,kfl,vcn,vfl = reduce(list.__add__, map(p_flags, flags.split('.')))
     if any(map(lambda x: x is None, (kcn,kfl,vcn,vfl))): return None
     # /kp/kr/vp/vr/kcnkfl.vcnvfl => /kp/kr/vp/vr/kcn.vcn (kfl and vfl compiled)
-    kp = up.build_re(kp, flags=kfl, silent=silent)
-    if vr: vp = up.build_re(vp, flags=vfl, silent=silent)
+    kp = build_re(kp, flags=kfl, silent=silent)
+    if vr: vp = build_re(vp, flags=vfl, silent=silent)
     if not kp or vr and not vp: return None
     return { 'kp':kp   , 'kr':kr   , 'vp':vp   , 'vr':vr
            , 'kcn':kcn , 'kfl':kfl , 'vcn':vcn , 'vfl':vfl }
@@ -214,7 +214,7 @@ if '__main__' == __name__:
     script += compile(params['e'], silent=params.get('q'))
     #flds = params['f'].split(',')
     #if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
-    #params['f'] = map(lambda x: up.build_re(x, silent=params.get('q')), flds)
+    #params['f'] = map(lambda x: build_re(x, silent=params.get('q')), flds)
     #if any(map(lambda x: not x, params['f'])): sys.exit(1)
 #    for js in up.all_lines(args, params, sed):
 #        print json.dumps(js)

@@ -26,7 +26,8 @@ Usage: jcut [-chrV] [-f field,field,...] [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjs.pipe as up
+import unixjso.pipe as up
+import unixjso.core as uc
 
 def cut(js, params):
     cut  = {}
@@ -67,7 +68,7 @@ if '__main__' == __name__:
     if params.get('h') or not params.get('f'): usage(0)
     flds = params['f'].split(',')
     if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
-    params['f'] = map(lambda x: up.build_re(x, silent=params.get('q')), flds)
+    params['f'] = map(lambda x: uc.build_re(x, silent=params.get('q')), flds)
     if any(map(lambda x: not x, params['f'])): sys.exit(1)
     for js in up.all_lines(args, params, cut):
         print json.dumps(js)
