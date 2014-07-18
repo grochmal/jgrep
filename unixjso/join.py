@@ -1,34 +1,39 @@
 #!/usr/bin/env python
 
-import sys,json,fileinput
+import json
 from unixjso.core import eprint
 
-def all_lines(args, params, linef, silent=False, pipe=True):
-    input = fileinput.input(args)
-    if pipe:  # correct behaviour over pipes, i.e. finish execution on SIGPIPE
-        import signal
-        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+def get_dict(line, file='', line=0, silent=False):
+    js = {}
+    try:
+        js = json.loads(ll)
+        if not type(js) is dict:
+            eprint( 'Non dictionary at file:', file
+                  , 'line:', line, silent=silent
+                  )
+            js = {}
+    except ValueError as e:
+        eprint(str(e), 'file:', file, 'line:', line, silent=silent)
+    return js
+
+def racjoin( left, right, params, linef
+           , silent=False, dropleft=False, dropright=False ):
+    try:
+        lfile = open(left)
+        rfile = open(right)
+    except IOError as e: eprint(str(e), silent=silent)
+    lineno = 0
     while True:
-        try:
-            line = input.next().strip()
-            if '' == line: continue
-            try:
-                info = { 'file' : fileinput.filename()
-                       , 'line' : fileinput.filelineno()
-                       }
-                js = json.loads(line)
-                if not type(js) is dict:
-                    eprint( 'Non dictionary at file:', info['file']
-                          , 'line:', info['line'], silent=silent
-                          )
-                    continue
-                ret = linef(js, params)
-                if ret: yield ret
-            except ValueError as e: eprint( str(e)
-                                          , 'file:', info['file']
-                                          , 'line:', info['line']
-                                          , silent=silent
-                                          )
-        except IOError as e: eprint(str(e), silent=silent)
-        except StopIteration: break
+        ll = lfile.readline()
+        rl = rfile.readline()
+        lineno += 1
+        if not ll and not rl: break
+        if dropleft  and not ll: break
+        if dropright and not rl: break
+        ljs = get_dict(ll, file=left,  line=lineno, silent=silent)
+        rjs = get_dict(rl, file=right, line=lineno, silent=silent)
+        ret = linef( ljs, rjs, params
+                   , { 'l':left , 'r':right , 'line':lineno }
+                   )
+        if ret: yield ret
 

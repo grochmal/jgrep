@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys,json,fileinput
+import json,fileinput
 from unixjso.core import eprint
 
 def all_lines(args, params, linef, silent=False, pipe=True):
