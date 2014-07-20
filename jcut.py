@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-__version__ = '0.2'
+__version__ = '0.3'
 __author__  = 'Michal Grochmal'
 __licence__ = 'GNU GPL v3 or later'
 __prog__    = 'jcut'
 __doc__     = '''
-Usage: jcut [-chrV] [-f field,field,...] [<file> ...]
+Usage: jcut [-chrlV] [-f field,field,...] [<file> ...]
 
   -h, --help
         print this help.
@@ -23,13 +23,16 @@ Usage: jcut [-chrV] [-f field,field,...] [<file> ...]
         treat every field in the field list as a regex, this
         is useful to pattern match several similar fields or
         to match a field with a comma in it (using \\054)`
+
+  -l, --list
+        print all available field in the input, then exit
 '''
 
 import sys,getopt,json,re
 import unixjso.pipe as up
 import unixjso.core as uc
 
-def cut(js, params):
+def cut(js, params, info=None):
     cut  = {}
     left = {}
     for k in js.keys():
@@ -39,16 +42,20 @@ def cut(js, params):
     if params.get('c'): return left
     return cut
 
+def list_fields(js, params, info=None):
+    for k in js: js[k] = 1
+    return js
+
 def usage(exit):
     print __doc__
     sys.exit(exit)
 
 if '__main__' == __name__:
     try:
-        opts,args = getopt.getopt( sys.argv[1:],"hVqf:rc"
-                                 , [ 'help'   , 'version' , 'quiet'
-                                   , 'silent' , 'fields=' , 'regex'
-                                   , 'complement'
+        opts,args = getopt.getopt( sys.argv[1:],"hVqf:rcl"
+                                 , [ 'help'       , 'version' , 'quiet'
+                                   , 'silent'     , 'fields=' , 'regex'
+                                   , 'complement' , 'list'
                                    ])
     except getopt.GetoptError as e:
         print str(e)
@@ -61,15 +68,26 @@ if '__main__' == __name__:
         elif o in ('-f','--fields')           : params['f'] = a
         elif o in ('-r','--regex')            : params['r'] = True
         elif o in ('-c','--complement')       : params['c'] = True
+        elif o in ('-l','--list')             : params['l'] = True
         else : assert False, 'bad command line option'
     if params.get('V'):
         print __prog__, __version__
         sys.exit(0)
-    if params.get('h') or not params.get('f'): usage(0)
-    flds = params['f'].split(',')
-    if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
-    params['f'] = map(lambda x: uc.build_re(x, silent=params.get('q')), flds)
-    if any(map(lambda x: not x, params['f'])): sys.exit(1)
-    for js in up.all_lines(args, params, cut):
-        print json.dumps(js)
+    if params.get('h'): usage(0)
+    if params.get('l'):
+        fields = {}
+        for js in up.all_lines(args, params, list_fields):
+            for k in js:
+               if not k in fields:
+                   fields[k] = 1
+                   print k
+    elif params.get('f'):
+        fs = params['f'].split(',')
+        if not params.get('r'): fs = map(lambda x: '^'+re.escape(x)+'$', fs)
+        params['f'] = map(lambda x: uc.build_re(x, silent=params.get('q')), fs)
+        if not all(params['f']): sys.exit(1)
+        for js in up.all_lines(args, params, cut):
+            print json.dumps(js)
+    else:
+        usage(0)
 
