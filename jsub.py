@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = '0.1'
+__version__ = '0.3'
 __author__  = 'Michal Grochmal'
 __licence__ = 'GNU GPL v3 or later'
 __prog__    = 'jsub'
@@ -66,9 +66,9 @@ Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
         then change every occurrence of .jpg to .png
         (note: if two fields are named `first_image`, `second_image` the first
         field will be overridden by the second as per ASCIIbetical order)
-            -e /.*image(.*)/image\\\\1/g -e /image.*/\.jpg/.png/g
-            -e {.*image(.*)}{image\\\\1}g -e {image.*}{\.jpg}{.png}g
-            -e /.*image(.*)/image\\\\1/g -e {image.*}{\.jpg}{.png}g
+            -e /.*image(.*)/image\\1/g -e /image.*/\.jpg/.png/g
+            -e {.*image(.*)}{image\\1}g -e {image.*}{\.jpg}{.png}g
+            -e /.*image(.*)/image\\1/g -e {image.*}{\.jpg}{.png}g
 
         More on the purpose of each field  and the `flags` suffix in the -e
         expression can be found in the `Expression` section, below.
@@ -101,14 +101,25 @@ import unixjso.pipe as up
 from unixjso.core import eprint,build_re
 
 def sed(js, params, info=None):
-    cut  = {}
-    left = {}
-    for k in js.keys():
-        f = lambda x: x.search(k)
-        if any(map(f, params['f'])) : cut[k]  = js[k]
-        else                        : left[k] = js[k]
-    if params.get('c'): return left
-    return cut
+    for expr in params['e']:
+        peg = lambda k: expr.get(k)
+        kp,kr,vp,vr,kcn,vcn = map(peg, 'kp,kr,vp,vr,kcn,vcn'.split(','))
+        count = 0
+        retjs = js.copy()
+        for k in js:
+            left = kp.search(k)
+            if not left: continue
+            count += 1
+            if count > kcn: continue
+            if kr is None: kr = left.group()  # in place
+            right = kp.sub(kr, k)
+            if vp:
+                retjs[right] = vp.sub(vr, js[k], count=vcn)
+            else:
+                if right: retjs[right] = js[left.string]
+                del retjs[left.string]
+        js = retjs
+    return retjs
 
 def p_flags(flags):
     cnt,flg = 1,0
@@ -147,8 +158,8 @@ def p_expr(expr, silent=False):
     if any(map(lambda x: x is None, (kcn,kfl,vcn,vfl))): return None
     # /kp/kr/vp/vr/kcnkfl.vcnvfl => /kp/kr/vp/vr/kcn.vcn (kfl and vfl compiled)
     kp = build_re(kp, flags=kfl, silent=silent)
-    if vr: vp = build_re(vp, flags=vfl, silent=silent)
-    if not kp or vr and not vp: return None
+    if not vr is None: vp = build_re(vp, flags=vfl, silent=silent)
+    if not kp or not vr is None and not vp: return None
     return { 'kp':kp   , 'kr':kr   , 'vp':vp   , 'vr':vr
            , 'kcn':kcn , 'kfl':kfl , 'vcn':vcn , 'vfl':vfl }
 
@@ -199,7 +210,7 @@ if '__main__' == __name__:
         elif o in ('-V','--version')          : params['V']  = True
         elif o in ('-q','--quiet','--silent') : params['q']  = True
         elif o in ('-f','--file')             : params['f']  = a
-        elif o in ('-e','--expression')       : params['e'] += o
+        elif o in ('-e','--expression')       : params['e'] += [a]
         elif o in ('-i','--in-place')         : params['i']  = True # TODO
         elif o in ('-b','--backup')           : params['b']  = a    # TODO
         else : assert False, 'bad command line option'
@@ -211,11 +222,11 @@ if '__main__' == __name__:
     script = []
     if params.get('f'):
         script = compile_script(params['f'], silent=params.get('q'))
-    script += compile(params['e'], silent=params.get('q'))
-    #flds = params['f'].split(',')
-    #if not params.get('r'): flds = map(lambda x: '^'+re.escape(x)+'$', flds)
-    #params['f'] = map(lambda x: build_re(x, silent=params.get('q')), flds)
-    #if any(map(lambda x: not x, params['f'])): sys.exit(1)
-#    for js in up.all_lines(args, params, sed):
-#        print json.dumps(js)
+        if script is None: sys.exit(1)
+    exprs = compile(params['e'], silent=params.get('q'))
+    if exprs is None: sys.exit(1)
+    params['e'] = script + exprs
+    if not params['e']: usage(0)
+    for js in up.all_lines(args, params, sed):
+        print json.dumps(js)
 

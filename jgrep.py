@@ -5,7 +5,7 @@ __author__  = 'Michal Grochmal'
 __licence__ = 'GNU GPL v3 or later'
 __prog__    = 'jgrep'
 __doc__     = '''
-Usage: jgrep [-hVqvniIHR] <key re> <value re> [<file> ...]
+Usage: jgrep [-n key] [-hVqviIHR] <key re> <value re> [<file> ...]
 
   -h, --help
         print this help.
@@ -16,6 +16,10 @@ Usage: jgrep [-hVqvniIHR] <key re> <value re> [<file> ...]
   -q, --quiet, --silent
         do not print anything, even on error
 
+  -n key, --line-number=key
+        give the line number in the output, it is added to the result under the
+        key specified as the argument.
+
   -v, --invert-match
         print lines that do not match re pattern pattern.
 '''
@@ -24,12 +28,14 @@ import sys,getopt,json,re
 import unixjso.pipe as up
 import unixjso.core as uc
 
-def match(js, params):
+def match(js, params, info):
     mtch = False
     for k in filter(params['key'].search, js.keys()):
-        if params['pattern'].search(js[k]): mtch = True
+        if params['pattern'].search(unicode(js[k])): mtch = True
     if params.get('v'): mtch = not mtch
-    if mtch: return js
+    if mtch:
+        if params.get('n'): return up.lineno(js, params['n'], info)
+        return js
     return None
 
 def usage(exit):
@@ -38,9 +44,9 @@ def usage(exit):
 
 if '__main__' == __name__:
     try:
-        opts,args = getopt.getopt( sys.argv[1:], 'hVqvniIHR'
+        opts,args = getopt.getopt( sys.argv[1:], 'hVqvn:iIHR'
                                  , [ 'help'   , 'version' , 'quiet'
-                                   , 'silent' , 'invert'  , 'line-number'
+                                   , 'silent' , 'invert'  , 'line-number='
                                    , 'ignore-case'   , 'ignore-value-case'
                                    , 'with-filename' , 'recursive'
                                    ])
@@ -58,7 +64,7 @@ if '__main__' == __name__:
         elif o in ('-V','--version')               : params['V'] = True
         elif o in ('-q','--quiet','--silent')      : params['q'] = True
         elif o in ('-v','--invert')                : params['v'] = True
-        elif o in ('-n','--line-number')           : params['n'] = True #TODO
+        elif o in ('-n','--line-number')           : params['n'] = a
         elif o in ('-i','--ignore-case')           : params['i'] = True #TODO
         elif o in ('-I','--ignore-value-case')     : params['I'] = True #TODO
         elif o in ('-H','--with-filename')         : params['H'] = True #TODO
