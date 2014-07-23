@@ -24,8 +24,8 @@ Usage: jecho [-hV] -f k:v [-f k:v -f k:v ...] [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjso.pipe as up
-import unixjso.core as uc
+import unixjsons.pipe as up
+import unixjsons.core as uc
 
 def echo(js, pr, info):
     for k,v in pr.f:

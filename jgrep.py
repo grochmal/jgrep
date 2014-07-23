@@ -25,8 +25,8 @@ Usage: jgrep [-n key] [-hVqviIHR] <key re> <value re> [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjso.pipe as up
-import unixjso.core as uc
+import unixjsons.pipe as up
+import unixjsons.core as uc
 
 def match(js, params, info):
     mtch = False

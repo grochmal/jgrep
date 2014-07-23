@@ -97,8 +97,8 @@ Usage: jsub [-hVqiI] [-f file | -e expr -e expr ...] [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjso.pipe as up
-from unixjso.core import eprint,build_re
+import unixjsons.pipe as up
+from unixjsons.core import eprint,build_re
 
 def sed(js, params, info=None):
     for expr in params['e']:

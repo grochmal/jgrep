@@ -29,8 +29,8 @@ Usage: jcut [-chrlV] [-f field,field,...] [<file> ...]
 '''
 
 import sys,getopt,json,re
-import unixjso.pipe as up
-import unixjso.core as uc
+import unixjsons.pipe as up
+import unixjsons.core as uc
 
 def cut(js, params, info=None):
     cut  = {}

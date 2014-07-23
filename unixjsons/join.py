@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import json
-from unixjso.core import eprint
+from unixjsons.core import eprint
 
 def get_dict(line, file='', line=0, silent=False):
     js = {}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import json,fileinput
-from unixjso.core import eprint
+from unixjsons.core import eprint
 
 class PipeInfo(object):
     def __init__(self, file='', line=0):
