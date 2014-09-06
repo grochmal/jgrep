@@ -8,24 +8,24 @@ __doc__     = '''
 Usage: jcut [-chrlV] [-f field,field,...] [<file> ...]
 
   -h, --help
-        print this help.
+        Print this help.
 
   -V, --version
-        prints the version of the script.
+        Prints the version of the script.
 
   -f, --fields=
-        comma delimited list of fields to cut from the json
+        Comma delimited list of fields to cut from the JSON.
 
   -c, --complement
-        print all fields that are not in the fields list
+        Print all fields that are not in the fields list.
 
   -r, --regex
-        treat every field in the field list as a regex, this
+        Treat every field in the field list as a regex, this
         is useful to pattern match several similar fields or
-        to match a field with a comma in it (using \\054)`
+        to match a field with a comma in it (using \\054).
 
   -l, --list
-        print all available field in the input, then exit
+        Print all available field in the input, then exit.
 '''
 
 import sys,getopt,json,re

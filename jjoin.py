@@ -8,13 +8,16 @@ __doc__     = '''
 Usage: jjoin [-hVq] file1 file2
 
   -h, --help
-        print this help.
+        Print this help.
 
   -V, --version
-        prints the version of the script.
+        Prints the version of the script.
 
   -q, --quiet, --silent
-        do not print messages
+        Do not print messages.
+
+  -, STDIN
+        Read from STDIN instead of file.
 '''
 
 import sys,getopt,json,re

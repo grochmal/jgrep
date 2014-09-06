@@ -8,20 +8,20 @@ __doc__     = '''
 Usage: jgrep [-n key] [-hVqviIHR] <key re> <value re> [<file> ...]
 
   -h, --help
-        print this help.
+        Print this help.
 
   -V, --version
-        prints the version of the script.
+        Prints the version of the script.
 
   -q, --quiet, --silent
-        do not print anything, even on error
+        Do not print anything, even on error.
 
   -n key, --line-number=key
-        give the line number in the output, it is added to the result under the
-        key specified as the argument.
+        Give the line number in the output, it is added to the
+        result under the key specified as the argument.
 
   -v, --invert-match
-        print lines that do not match re pattern pattern.
+        Print lines that do not match re pattern pattern.
 '''
 
 import sys,getopt,json,re

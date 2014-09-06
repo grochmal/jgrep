@@ -8,19 +8,20 @@ __doc__     = '''
 Usage: jecho [-hV] -f k:v [-f k:v -f k:v ...] [<file> ...]
 
   -h, --help
-        print this help.
+        Print this help.
 
   -V, --version
-        prints the version of the script.
+        Prints the version of the script.
 
   -q, --quiet, --silent
-        do not print messages
+        Do not print messages.
 
   -f k:v, --field=k:v
-        add field `k` with value `v` to the stream
+        Add field `k` with value `v` to the stream.
 
   -r, --replace
-        by default fields will not be replaced, unless this flag is on
+        By default fields already in the stream will not be
+        replaced, unless this flag is on.
 '''
 
 import sys,getopt,json,re
